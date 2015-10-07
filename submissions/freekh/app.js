@@ -17,45 +17,30 @@ Planet.render = (planetState) => {
   )
 }
 
-const JediData = (id) => {
-  return hg.value({
-    id: hg.value(0),
-    jediName: hg.value(''),
-    masterId: hg.value(0),
-    apprenticeId: hg.value(0),
-    homeworld: hg.state({
-      id: hg.value(0),
-      homeworldName: hg.value('')
+const Jedi = (url) => {
+  return hg.state({
+    loaded: hg.value(false),
+    url: hg.value(url),
+    label: hg.value(''),
+    master: hg.state({
+      url: hg.value('')
     })
   })
 }
 
-const Jedi = (index, id, planet) => {
-  return hg.state({
-    index: hg.value(index),
-    data: JediData(id)
-  })
-}
-
 Jedi.render = (jediState) => {
+  if (!jediState.loaded) {
+    return h('li.css-slot')
+  }
+  
   return h('li.css-slot', [
-    h('h3', [String(jediState.index)]),
-    h('h6', jediState.homeworld.homeworldName)
+    h('h3', [ jediState.label ]),
   ])
 }
 
 const Jedis = (planet) => {
-  const totalSlots = 5
-  const emptySlots = Array.apply(null, Array(totalSlots))
-  const jedis = emptySlots.map((_, index) => {
-    if (index === 0) {
-      return Jedi(0, 3616, planet)
-    } else {
-      return Jedi(index, 0, planet)
-    }
-  })
   return hg.state({
-    jedis: hg.array(jedis)
+    jedis: hg.array([ Jedi('http://localhost:3000/dark-jedis/3616') ])
   })
 }
 
@@ -66,20 +51,34 @@ Jedis.render = (jedisState) => {
   )
 }
 
-const Dispatcher = () => {
+let Requests = []
 
+const Request = (jedi) => {
+  const xhr = new XMLHttpRequest()
+  xhr.onload = () => {
+    const data = JSON.parse(xhr.responseText)
+    console.log(data)
+  }
+  xhr.open('GET', jedi.url())
+  xhr.send()
+  return xhr
 }
 
 const Scroll = (jedisState) => {
+  const index = hg.value(0)
+  const removeStaleRequests = () => {
+
+  }
+  
   return hg.state({
+    index,
     channels: {
       up: (state) => {
-        jedisState.jedis.map(jedi => {
-          jedi.index.set(jedi.index() - 2)
-        })
+        Requests.push(Request(jedisState.jedis[0]))
       },
       down: (state) => {
-      },
+        
+      }
     }
   })
 }
@@ -126,7 +125,7 @@ hg.app(container(), app, App.render);
 
 const ws = new WebSocket('ws://localhost:4000')
 ws.onopen = ({data}) => {
-  console.log(data)
+  console.log('up and running')
 }
 ws.onmessage = ({data}) => {
   const planet = JSON.parse(data)
