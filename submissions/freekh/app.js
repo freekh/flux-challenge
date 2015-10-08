@@ -94,10 +94,8 @@ const RequestData= (slot, slots) => {
         url: json.apprentice.url
       }
     }
-    if (slot.data().url === url) {
-      slot.data.set(jedi)
-      slot.loaded.set(true)
-    }
+    slot.data.set(jedi)
+    slot.loaded.set(true)
     fill(slots)
   }
   console.log('GET', url)
@@ -139,27 +137,24 @@ const ReExecuteRequest = (i, slot, slots) => {
 const fill = (slots) => {
   const values = slots().values
 
+  const propagate = (i, url) => {
+    const nextSlot = values[i]
+    if (nextSlot &&
+        !nextSlot.loaded) {
+      if (slots.values[i].data.url !== url) {
+        slots.values[i].data.set({ url })
+        console.log('prop', i, url)
+        ReExecuteRequest(i, slots.values[i], slots)
+      }
+    }
+  }
+
   for (let i of Object.keys(values)) {
     const slot = values[i]
     const data = slot.data
     if (!slot.loaded && hasUrl(data)) {
       ReExecuteRequest(i, slots.values[i], slots)
-    }
-  }
-
-  const propagate = (i, url) => {
-    const nextSlot = values[i]
-    if (nextSlot &&
-        !nextSlot.loaded) {
-      slots.values[i].data.set({ url })
-      ReExecuteRequest(i, slots.values[i], slots)
-    }
-  }
-
-  for (let i of Object.keys(values)) {
-    const slot = values[i]
-    const data = slot.data
-    if (hasUrl(data)) {
+    } else if (slot.loaded && hasUrl(data)) {
       if (data.master && data.master.url) {
         //TODO: parseInt is ugly:
         propagate(parseInt(i) + 1, data.master.url)
