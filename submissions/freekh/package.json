@@ -4,8 +4,11 @@
   "description": "",
   "main": "app.js",
   "dependencies": {
+    "asap": "^2.0.3",
     "mercury": "^14.0.0",
+    "nactor": "^0.2.0",
     "request-promise": "^0.4.3",
+    "uid": "0.0.2",
     "websocket-promise": "^1.0.1"
   },
   "devDependencies": {},

@@ -2,7 +2,6 @@
 
 const hg = require('mercury')
 const { h } = hg
-const asap = require('asap')
 
 const Planet = () => {
   return hg.state({
@@ -52,7 +51,7 @@ Slot.render = (slots, i) => {
   if (!slot.data) {
     return h('li.css-slot')
   }
-  return h('li.css-slot', [ hg.partial(Jedi.render, slot.data), h('span', String(slot.index)) ])
+  return h('li.css-slot', [ hg.partial(Jedi.render, slot.data) ])
 }
 
 const Slots = () => {
@@ -67,85 +66,71 @@ Slots.render = (slots) => {
     Object.keys(slots)
       .sort()
       .map( i => hg.partial(Slot.render, slots, i) )
-      // .map( i => h('li.css-slot', String(slots[i].index)) )
   )
 }
 
-class ScrollLogic {
-  scroll(value) {
-    this._scrollSlots(value)
-    this.updateSlots()
-  }
-  _scrollSlots(value) {
-
-  }
+const slotVisible = (slot, index, numberOfSlots) => {
+  return slot.index() >= index &&
+      slot.index() < index + numberOfSlots
 }
 
+const updateSlot = (slot, slots) => {
 
-const update = ({url, id}, index, slots) => {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.onload = (evt) => {
-      if (xhr.status === 200 && xhr.readyState === 4) {
-        Object.keys(slots()).forEach( i => {
-          const slot = slots[i]
-          if (slot.index() === index) {
-            const data = JSON.parse(xhr.responseText)
-            slot.data.set({id, url, label: data.name, master: data.master, apprentice: data.apprentice})
-            resolve(data)
-          }
-        })
-      } else {
-        reject({message: 'Did not get a 200.', xhr: xhr})
+}
+
+class Requests {
+  constructor() {
+    this.requests = {}
+  }
+
+  newRequest(slots, id, index) {
+
+  }
+
+  abortNonVisible(slots, index, numberOfSlots) {
+    let remainingRequests = {}
+    for (const slot of slots) {
+      if (!slotVisible(slot, index, numberOfSlots)) {
+        this.requests[slot.id].abort()
+        delete this.requests[slot.id]
       }
     }
-    xhr.open('GET', url)
-    xhr.send()
-  })
+  }
+
+  stopAll() {
+    for (const request of requests) {
+      this.request.abort()
+    }
+    this.requests = {}
+  }
 }
 
+class Dispatcher {
+  constructor(numberOfSlots, requests) {
+    this.numberOfSlots = numberOfSlots;
+    this.requests = requests
+  }
 
-const Scroll = (slots) => {
+  scroll(value, state) {
+    
+  }
+}
+
+const Scroll = (slots, requests) => {
+  const numberOfSlots = slots.length
+  const scroll = (value, state) => {
+    const currentIndex = state.index()
+    state.index.set(state.index() + value)
+    for (const slot of slots) {
+      slot.index.set(slot.index() + value)
+
+    }
+  }
   return hg.state({
     index: hg.value(slots()[0].index),
     channels: {
-      up: (state) => {
-        const current = slots()
-        if (current[0].data.id) {
-          slots[0].index.set(slots[0].index() - 2)
-          slots[1].index.set(slots[1].index() - 2)
-          slots[2].index.set(slots[2].index() - 2)
-          slots[3].index.set(slots[3].index() - 2)
-          slots[4].index.set(slots[4].index() - 2)
-
-          slots[0].data.set({})
-          slots[1].data.set({})
-          slots[2].data.set(current[0].data)
-          slots[3].data.set(current[1].data)
-          slots[4].data.set(current[2].data)
-
-
-          const master = current[0].data.master
-          if (master) {
-            update(master, current[0].index - 1, slots).then(data => {
-              if (data.master) {
-                update(data.master, current[0].index - 2, slots)
-              }
-            })
-          }
-        }
-        // const old = slots()
-        // slots[0].data.set(old[2].data)
-        // slots[1].data.set(old[3].data)
-        // slots[2].data.set(old[4].data)
-        // slots[3].data.set({})
-        // slots[4].data.set({})
-      },
-      down: (state) => {
-        Object.keys(slots()).forEach(i =>{
-          slots[i].index.set(slots[i].index() - 2)
-        })
-      }
+      up: (state) => scroll(-2, state)
+      down: (state) => scroll(2, state)
     }
   })
 }
@@ -192,9 +177,11 @@ var app = App()
 hg.app(container(), app, App.render);
 
 const initialize = (app) => {
-  app.slots[0].data.set({url: 'http://localhost:3000/dark-jedis/3616', id: 3616})
-  update({url: 'http://localhost:3000/dark-jedis/3616', id: 3616}, 0, app.slots)
-  console.log('initialized')
+  // app.slots
+  //   .values[0]
+  //   .data
+  //   .set({ url: 'http://localhost:3000/dark-jedis/3616' })
+  // update(0, app.scroll, app.slots)
 }
 
 const ws = new WebSocket('ws://localhost:4000')
